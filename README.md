@@ -1,1 +1,1 @@
-Task 0, where am I
+a script that switches the current user to the user betty
