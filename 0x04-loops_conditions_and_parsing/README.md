@@ -1,1 +1,1 @@
-This contains programs describing Shellcheck Project
+Shellcheck Project
