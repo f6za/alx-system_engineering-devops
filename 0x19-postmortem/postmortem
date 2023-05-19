@@ -1,0 +1,112 @@
+POSTMORTEM
+ 
+A software system can malfunction at any point in time, which can be as a result of a variety of different things, including bugs, traffic peaks, security concerns, hardware problems, natural disasters, and human error and/or sabotage. The only positive take away from a system failure is that it presents a fantastic opportunity for growth and improvement. Failure is ok, insofar as the engineer learns from the error and never fails again on the same problem.
+ 
+The incident report, also known as postmortem, is an important tool in software development. The team(s) in charge of the system will create a summary following any outage with the below objectives:
+
+
+
+
+Enlighten the entire organization on the cause of the outage. Managers and executives must comprehend what transpired and how it will affect their work and put plans in place to prevent recurrence.
+
+
+
+
+to provide evidence that the underlying causes of the outage have been identified and that steps have been made to assure that it will be remedied.
+ 
+An example of a made-up incident report is provided below:
+ 
+Issue Synopsis
+
+The event will begin at 10:30 AM on May 15 and end at 12:30 PM.
+
+
+
+
+Every user's access to the mobile banking page was being denied since it was returning a 500 status code. The internal website server might have been damaged or corrupted.
+
+
+
+
+Typo in a mobile banking app settings document was the primary culprit.
+ 
+Timeline
+
+
+
+
+Several customers noticed the problem on 05/15/23 at 10:35 AM and contacted customer service.
+
+
+
+
+The problem was escalated to the System Engineering team and the SRE at 10:40 AM on May 15, 2023
+They used 'ps aux' to check the server's running processes around 10:45 AM on May 15 to see whether any unwanted child processes were preventing the server from responding.
+
+
+
+
+
+05/15/23 10:45 AM — The team used'strace' on a few process ids, including those of apache2 (the webserver hosting the mobile banking app page), after confirming that the processes appeared to be operating normally.
+
+
+
+
+The second apache2 process was stuck after calling the system call accept4() at 05/15/23 10:55 AM, and strace on one of the apache2 processes revealed an infinite loop of system calls.
+
+
+
+
+05/15/23 11:15 AM — The team discovered strace was showing a large number of failures while executing it on that second apache2 process while using curl on the page's IP. The absence of the file index.html was one issue, but this was a false positive since putting the files to the WordPress directories didn't seem to fix the problem.
+
+
+
+
+05/15/23 11:30 AM — The team noticed that one of the problems in the strace output noted that a file was missing: apache2 appeared to be trying to access a file with the suffix ".phpp," which is not typically used for files.
+
+
+
+
+05/15/23 11:55 AM — Line 128 of the /var/www/html/wp-settings.php mobile app settings file was attempting to require the incorrect file. The team simply eliminated the extra "p" at the end of the extension going forward.
+
+
+
+
+The team just needed to restart apache2 using'service apache2 restart' at 12:20 AM on May 15, 2023. The page returned to being active as expected.
+ 
+Root cause and solution:
+
+
+
+
+There was a spelling error that prevented apache2 from functioning properly in the mobile app settings file.
+
+
+
+
+By fixing the misspelling and restarting apache2, the problem was avoided.
+ 
+Corrective and preventative actions:
+
+
+
+
+In order to prevent the injection of minor mistakes like the one that occurred in this occurrence, setting files should only have write permissions for the SRE.
+
+
+
+
+TODO:
+
+
+
+
+Set the team's access to /var/www/html/wp-settings.php to read-only.
+
+
+
+
+Read through each configuration file carefully to check for additional errors of that nature.
+ 
+
+
